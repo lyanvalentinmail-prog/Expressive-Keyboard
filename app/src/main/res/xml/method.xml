@@ -14,4 +14,9 @@
         android:imeSubtypeMode="keyboard"
         android:label="@string/subtype_en" />
 
+    <subtype
+        android:imeSubtypeLocale="es_ES"
+        android:imeSubtypeMode="keyboard"
+        android:label="@string/subtype_es" />
+
 </input-method>

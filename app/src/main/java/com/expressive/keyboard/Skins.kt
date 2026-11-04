@@ -402,13 +402,13 @@ object SkinParser {
 
     private fun color(s: String?, field: String): Color? {
         if (s.isNullOrBlank()) return null
-        val c = PluginParser.parseColor(s) ?: throw IllegalArgumentException("$field: неверный цвет «$s»")
+        val c = PluginParser.parseColor(s) ?: throw IllegalArgumentException(tr("{0}: неверный цвет «{1}»", field, s))
         return Color(c)
     }
 
     private fun colors(a: JSONArray, field: String): List<Color> {
         val list = (0 until min(a.length(), 8)).mapNotNull { color(a.optString(it), field) }
-        require(list.isNotEmpty()) { "$field: пустой градиент" }
+        require(list.isNotEmpty()) { tr("{0}: пустой градиент", field) }
         return if (list.size == 1) list + list else list
     }
 
@@ -420,12 +420,12 @@ object SkinParser {
             val arr = v.optJSONArray("colors")
             val pattern = v.optString("pattern").lowercase()
             if (pattern.isNotEmpty() && arr != null) {
-                require(pattern in setOf("pixels", "dots", "planks")) { "$field.pattern: pixels, dots или planks" }
+                require(pattern in setOf("pixels", "dots", "planks")) { tr("{0}.pattern: pixels, dots или planks", field) }
                 SkinFill.Pattern(pattern, colors(arr, field), v.optDouble("cell", 3.0).toFloat().coerceIn(1f, 24f), v.optInt("seed", 7))
             } else if (arr == null) color(v.optString("color"), field)?.let { SkinFill.Solid(it) }
             else SkinFill.Gradient(colors(arr, field), v.optDouble("angle", 90.0).toFloat(), v.optString("type") == "radial")
         }
-        else -> throw IllegalArgumentException("$field: ожидается цвет или градиент")
+        else -> throw IllegalArgumentException(tr("{0}: ожидается цвет или градиент", field))
     }
 
     private fun JSONObject.f(name: String): Float? = if (has(name)) optDouble(name).toFloat().takeIf { !it.isNaN() } else null
@@ -435,7 +435,7 @@ object SkinParser {
         val raw = optString(name).uppercase()
         if (raw.isEmpty()) return null
         return enumValues<T>().firstOrNull { it.name == raw }
-            ?: throw IllegalArgumentException("$name: «${optString(name)}» — допустимо ${enumValues<T>().joinToString { it.name.lowercase() }}")
+            ?: throw IllegalArgumentException(tr("{0}: «{1}» — допустимо {2}", name, optString(name), enumValues<T>().joinToString { it.name.lowercase() }))
     }
 
     fun glass(o: JSONObject): GlassSpec {
@@ -504,7 +504,7 @@ object SkinParser {
         val styles = LinkedHashMap<String, KeyStyle>()
         o.optJSONObject("keys")?.let { k ->
             k.keys().forEach { sel ->
-                require(sel in SELECTORS || sel.startsWith("key:")) { "keys: неизвестный селектор «$sel»" }
+                require(sel in SELECTORS || sel.startsWith("key:")) { tr("keys: неизвестный селектор «{0}»", sel) }
                 styles[sel] = style(k.getJSONObject(sel), sel)
             }
         }

@@ -56,15 +56,20 @@ class KeyboardLanguage(
     override fun hashCode(): Int = id.hashCode()
     override fun toString(): String = id
 
-    /** Название для настроек на языке интерфейса: по-русски из описания, по-английски — из системы. */
+    /** Название для настроек на языке интерфейса: по-русски из описания, иначе — из системы. */
     fun displayTitle(): String {
-        if (!I18n.isEnglish) return title
-        val name = runCatching { java.util.Locale.forLanguageTag(locale).getDisplayName(java.util.Locale.ENGLISH) }.getOrNull()
+        if (I18n.isRussian) return title
+        val ui = I18n.uiLocale
         return when (composer) {
-            Composer.PINYIN -> "Chinese ${if (id == "zh-tw") "Traditional " else ""}(Pinyin)"
-            Composer.KANA -> "Japanese (Romaji → Kana)"
-            Composer.TELEX -> "Vietnamese (Telex)"
-            else -> name?.takeIf { it.isNotBlank() && it != locale } ?: title
+            Composer.PINYIN -> tr(if (id == "zh-tw") "Китайский традиционный (пиньинь)" else "Китайский (пиньинь)")
+            Composer.KANA -> tr("Японский (ромадзи → кана)")
+            Composer.TELEX -> tr("Вьетнамский (Telex)")
+            else -> {
+                val name = runCatching { java.util.Locale.forLanguageTag(locale).getDisplayName(ui) }.getOrNull()
+                name?.takeIf { it.isNotBlank() && it != locale }
+                    ?.replaceFirstChar { it.titlecase(ui) }
+                    ?: title
+            }
         }
     }
 
@@ -445,9 +450,9 @@ object Languages {
     /** Язык из плагина: { "id", "name", "label", "locale", "rows": ["...", ...], "shift": {..}, "variants": {..} }. */
     fun parse(o: JSONObject, pluginId: String): KeyboardLanguage {
         val id = o.optString("id").trim().lowercase()
-        require(Regex("^[a-z]{2,3}([-_][a-z0-9]{2,8})?$").matches(id)) { "languages: id вида «xx» или «xx-yy»" }
-        val rowsArr = o.optJSONArray("rows") ?: throw IllegalArgumentException("languages.$id: нужны rows")
-        require(rowsArr.length() in 1..5) { "languages.$id: от 1 до 5 рядов" }
+        require(Regex("^[a-z]{2,3}([-_][a-z0-9]{2,8})?$").matches(id)) { tr("languages: id вида «xx» или «xx-yy»") }
+        val rowsArr = o.optJSONArray("rows") ?: throw IllegalArgumentException(tr("languages.{0}: нужны rows", id))
+        require(rowsArr.length() in 1..5) { tr("languages.{0}: от 1 до 5 рядов", id) }
         val rows = (0 until rowsArr.length()).map { i ->
             val v = rowsArr.get(i)
             if (v is org.json.JSONArray) (0 until min(v.length(), 14)).map { v.optString(it) }.filter { it.isNotEmpty() }

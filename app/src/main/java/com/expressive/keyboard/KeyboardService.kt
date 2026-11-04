@@ -3303,7 +3303,7 @@ class ComposeKeyboardService : InputMethodService(),
                 PluginActionType.TRANSFORM -> {
                     val t = takeTarget(ic, a.scope)
                     if (t == null) {
-                        kb.pluginStatus = "Нет текста для «${a.title}»"
+                        kb.pluginStatus = tr("Нет текста для «{0}»", a.title)
                     } else {
                         replaceTarget(ic, t, PluginTransforms.apply(a, t.text))
                         kb.pluginStatus = "✓ ${a.title}"

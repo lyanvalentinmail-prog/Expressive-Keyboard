@@ -149,6 +149,10 @@ enum class HapticMode(val id: String, val title: String) {
     }
 }
 
+/** Языки клавиатуры по умолчанию: испанский и английский для испанской системы, иначе русский и английский. */
+val DEFAULT_LANGUAGES: String =
+    if (java.util.Locale.getDefault().language == "es") "es,en" else "ru,en"
+
 @Immutable
 data class KeyboardSettings(
     val themeMode: String = "SYSTEM",
@@ -302,7 +306,7 @@ data class KeyboardSettings(
     /** Настройки тем: JSON { "id темы": { "id настройки": значение } }. */
     val skinOptions: String = "",
     // --- языки и подсказки ---
-    val languages: String = "ru,en",              // включённые языки по порядку
+    val languages: String = DEFAULT_LANGUAGES,    // включённые языки по порядку
     val autoCorrectStrength: String = "NORMAL",   // SAFE — только уверенные исправления | NORMAL — как Gboard
     val dictAutoDownload: Boolean = true,         // скачивать словарь языка при включении
     val punctuationKeys: Boolean = true,          // «,» и «.» по бокам пробела, как в Gboard
@@ -574,7 +578,7 @@ object KeyboardPrefs {
             incognito = p.getBoolean("incognito", false),
             skinPlugin = p.getString("skin_plugin", "") ?: "",
             skinOptions = p.getString("skin_options", "") ?: "",
-            languages = p.getString("languages", "ru,en")?.ifBlank { "ru,en" } ?: "ru,en",
+            languages = p.getString("languages", DEFAULT_LANGUAGES)?.ifBlank { DEFAULT_LANGUAGES } ?: DEFAULT_LANGUAGES,
             autoCorrectStrength = p.getString("auto_correct_strength", "NORMAL") ?: "NORMAL",
             dictAutoDownload = p.getBoolean("dict_auto_download", true),
             punctuationKeys = p.getBoolean("punctuation_keys", true),
@@ -711,7 +715,7 @@ object KeyboardPrefs {
     /** Возвращает число применённых значений; файлы шрифта/фона из копии не переносятся. */
     fun importJson(context: Context, raw: String): Int {
         val root = JSONObject(raw)
-        require(root.optString("format") == "expressive-keyboard-settings") { "Это не файл настроек клавиатуры" }
+        require(root.optString("format") == "expressive-keyboard-settings") { tr("Это не файл настроек клавиатуры") }
         val values = root.getJSONObject("values")
         var n = 0
         edit(context) {

@@ -22,7 +22,7 @@ Requires Android 8.0 or newer.
 - **Languages:** 90+ layouts; Chinese (Pinyin, simplified and traditional) and Japanese (Romaji → Kana) input; Indic scripts (InScript)
 - **Emoji:** all Unicode 16 emoji, search in English and Russian, skin tones, built-in styles (Twemoji, Noto, Blob, OpenMoji)
 - **Designs:** Material You Expressive, Material 3 (Google guidelines), Liquid Glass, Classic, Neon, Neumorphism — one tap
-- **App language:** Russian or English
+- **App language:** Russian, English or Spanish (the whole app and keyboard UI, plus a Spanish input subtype)
 - **Panels:** emoji, GIFs, clipboard, translator, voice input
 - **Look:** Material You colors, themes and skins, custom fonts (.ttf/.otf), a photo from your gallery behind the keys
 - **Layout:** key height and corner radius, spacing, keyboard width, one-handed mode

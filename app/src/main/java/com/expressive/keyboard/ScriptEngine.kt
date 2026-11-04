@@ -147,7 +147,7 @@ private class SandboxFactory : ContextFactory() {
     }
 }
 
-private class ScriptTimeout : Error("скрипт работает слишком долго и остановлен")
+private class ScriptTimeout : Error(tr("скрипт работает слишком долго и остановлен"))
 
 /** Функция kb.* — обычная JS-функция без доступа к Java-объекту за ней. */
 private class Fn(scope: Scriptable, private val fname: String, private val body: (Rhino, Array<Any?>) -> Any?) : BaseFunction() {
@@ -301,7 +301,7 @@ object ScriptHost {
     }
 
     private fun describe(t: Throwable): String = when (t) {
-        is RhinoException -> "${t.details()} (строка ${t.lineNumber()})"
+        is RhinoException -> tr("{0} (строка {1})", t.details(), t.lineNumber())
         is ScriptTimeout -> t.message.orEmpty()
         else -> t.message ?: t.javaClass.simpleName
     }
@@ -581,7 +581,7 @@ object ScriptHost {
     }
 
     fun render(panel: ScriptPanel): List<UiNode> {
-        val m = mods[panel.pluginId] ?: return listOf(UiNode.Error("Плагин выключен"))
+        val m = mods[panel.pluginId] ?: return listOf(UiNode.Error(tr("Плагин выключен")))
         val fn = m.panels[panel.id]?.second ?: return emptyList()
         return exec(m, CALL_BUDGET_MS) { cx -> parseNodes(m, fn.call(cx, m.scope, m.scope, emptyArray())) }
             .getOrElse { listOf(UiNode.Error(describe(it))) }
@@ -794,13 +794,13 @@ object ScriptHost {
 
     /** Звук из data: URI или файла архива мода — во временный файл и в MediaPlayer. */
     private fun playAudio(ctx: Context, m: Mod, src: String, volume: Float, loop: Boolean): Int {
-        require(m.players.size < 8) { "playAudio: не больше 8 звуков сразу" }
+        require(m.players.size < 8) { tr("playAudio: не больше 8 звуков сразу") }
         val b64 = when {
             src.startsWith("data:") -> src.substringAfter(',')
-            else -> m.plugin.files[src] ?: throw IllegalArgumentException("playAudio: нет файла «$src»")
+            else -> m.plugin.files[src] ?: throw IllegalArgumentException(tr("playAudio: нет файла «{0}»", src))
         }
         val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
-        require(bytes.size < 8 * 1024 * 1024) { "playAudio: файл больше 8 МБ" }
+        require(bytes.size < 8 * 1024 * 1024) { tr("playAudio: файл больше 8 МБ") }
         val dir = java.io.File(ctx.cacheDir, "mod_audio").apply { mkdirs() }
         val f = java.io.File(dir, "${m.plugin.id.hashCode()}_${src.hashCode()}.bin")
         if (!f.exists() || f.length() != bytes.size.toLong()) f.writeBytes(bytes)
@@ -852,14 +852,14 @@ object ScriptHost {
 
     private fun modFile(ctx: Context, m: Mod, name: String): java.io.File {
         require(Regex("^[A-Za-z0-9._-]{1,100}$").matches(name) && name != "." && name != "..") {
-            "files: имя файла — латиница, цифры, . _ - (до 100 символов)"
+            tr("files: имя файла — латиница, цифры, . _ - (до 100 символов)")
         }
         return java.io.File(modDir(ctx, m), name)
     }
 
     private fun checkQuota(ctx: Context, m: Mod, adding: Int, replacing: java.io.File) {
         val used = modDir(ctx, m).listFiles()?.filter { it != replacing }?.sumOf { it.length() } ?: 0L
-        require(used + adding <= 32L * 1024 * 1024) { "files: у мода не больше 32 МБ файлов" }
+        require(used + adding <= 32L * 1024 * 1024) { tr("files: у мода не больше 32 МБ файлов") }
     }
 
     private fun digest(algo: String, text: String): String =
@@ -882,7 +882,7 @@ object ScriptHost {
             else -> name
         }
         val code = android.view.KeyEvent.keyCodeFromString("KEYCODE_" + alias.uppercase())
-        require(code != android.view.KeyEvent.KEYCODE_UNKNOWN) { "sendKey: неизвестная клавиша «$name»" }
+        require(code != android.view.KeyEvent.KEYCODE_UNKNOWN) { tr("sendKey: неизвестная клавиша «{0}»", name) }
         return code
     }
 
@@ -924,7 +924,7 @@ object ScriptHost {
         ?.entries?.associate { it.key.toString() to it.value } ?: emptyMap()
 
     private fun need(m: Mod, perm: String) {
-        if (!m.has(perm)) throw IllegalStateException("нужно разрешение \"$perm\" в поле permissions")
+        if (!m.has(perm)) throw IllegalStateException(tr("нужно разрешение \"{0}\" в поле permissions", perm))
     }
 
     // ------------------------------------------------------------------ API kb.*
@@ -944,7 +944,7 @@ object ScriptHost {
         // --- регистрация
         def(kb, "on") { _, a ->
             val ev = str(a, 0)
-            val fn = a.getOrNull(1) as? JsFunction ?: throw IllegalArgumentException("kb.on(событие, функция)")
+            val fn = a.getOrNull(1) as? JsFunction ?: throw IllegalArgumentException(tr("kb.on(событие, функция)"))
             m.handlers.getOrPut(ev) { ArrayList() } += fn
             main.post { publish() }
             Unit
@@ -952,7 +952,7 @@ object ScriptHost {
         def(kb, "off") { _, a -> m.handlers.remove(str(a, 0)); main.post { publish() }; Unit }
         def(kb, "addButton") { _, a ->
             val o = opts(a, 0)
-            val title = o["title"]?.toString() ?: throw IllegalArgumentException("addButton: нужно title")
+            val title = o["title"]?.toString() ?: throw IllegalArgumentException(tr("addButton: нужно title"))
             val bid = o["id"]?.toString() ?: title
             m.buttons[bid] = ScriptButton(id, bid, title, o["icon"]?.toString() ?: "🔘", o["toolbar"] == true) to (o["onClick"] as? JsFunction)
             main.post { publish() }
@@ -961,14 +961,14 @@ object ScriptHost {
         def(kb, "removeButton") { _, a -> m.buttons.remove(str(a, 0)); main.post { publish() }; Unit }
         def(kb, "addPanel") { _, a ->
             val o = opts(a, 0)
-            val title = o["title"]?.toString() ?: throw IllegalArgumentException("addPanel: нужно title")
+            val title = o["title"]?.toString() ?: throw IllegalArgumentException(tr("addPanel: нужно title"))
             val pid = o["id"]?.toString() ?: title
             m.panels[pid] = ScriptPanel(id, pid, title, o["icon"]?.toString() ?: m.plugin.icon) to (o["render"] as? JsFunction)
             main.post { publish() }
             pid
         }
         def(kb, "addCommand") { _, a ->
-            val fn = a.getOrNull(1) as? JsFunction ?: throw IllegalArgumentException("kb.addCommand(имя, функция)")
+            val fn = a.getOrNull(1) as? JsFunction ?: throw IllegalArgumentException(tr("kb.addCommand(имя, функция)"))
             m.commands[str(a, 0)] = fn
             Unit
         }
@@ -1074,13 +1074,13 @@ object ScriptHost {
         fun sysKey(name: String) = "$id/$name"
         def(particles, "set") { _, a ->
             val name = str(a, 0, "default")
-            require(ModFx.system(sysKey(name)) != null || ModFx.systemsOf("$id/") < 8) { "particles: не больше 8 систем у мода" }
+            require(ModFx.system(sysKey(name)) != null || ModFx.systemsOf("$id/") < 8) { tr("particles: не больше 8 систем у мода") }
             ModFx.setSystem(sysKey(name), ParticleConfig.parse(opts(a, 1)))
             syncDevices()
             Unit
         }
         def(particles, "emit") { _, a ->
-            val sys = ModFx.system(sysKey(str(a, 0, "default"))) ?: throw IllegalArgumentException("particles.emit: сначала particles.set")
+            val sys = ModFx.system(sysKey(str(a, 0, "default"))) ?: throw IllegalArgumentException(tr("particles.emit: сначала particles.set"))
             val o = opts(a, 1)
             fun f(k: String, def: Float) = (o[k] as? Number)?.toFloat() ?: def
             sys.emit(f("count", 10f).toInt(), f("x", 0f), f("y", 0f), f("w", 0f), f("h", 0f), f("speed", 0f), f("angle", 0f), f("spread", 360f))
@@ -1158,7 +1158,7 @@ object ScriptHost {
         }
         def(kb, "setLayout") { _, a ->
             val lid = str(a, 0)
-            require(lid in PluginParser.LAYOUT_IDS || Regex("^[a-z]{2,3}([-_][a-z0-9]{2,8})?$").matches(lid)) { "setLayout: код языка, symbols или symbols2" }
+            require(lid in PluginParser.LAYOUT_IDS || Regex("^[a-z]{2,3}([-_][a-z0-9]{2,8})?$").matches(lid)) { tr("setLayout: код языка, symbols или symbols2") }
             val rows = fromJs(a.getOrNull(1)) as? List<*>
             if (rows == null) m.layouts.remove(lid)
             else m.layouts[lid] = rows.take(8).mapNotNull { r ->
@@ -1206,7 +1206,7 @@ object ScriptHost {
         }
         def(storage, "set") { c, a ->
             val raw = Rhino.toString(stringify.call(c, s, s, arrayOf(a.getOrNull(1))))
-            require(raw.length < 256 * 1024) { "storage: значение больше 256 КБ" }
+            require(raw.length < 256 * 1024) { tr("storage: значение больше 256 КБ") }
             prefs.edit().putString(str(a, 0), raw).apply()
             Unit
         }
@@ -1229,12 +1229,12 @@ object ScriptHost {
             need(m, "network")
             val o = opts(a, 0)
             val cb = a.getOrNull(1) as? JsFunction
-            val url = o["url"]?.toString() ?: throw IllegalArgumentException("http: нужно url")
-            require(url.startsWith("https://")) { "http: разрешены только https-адреса" }
-            require(!isPrivateHost(url)) { "http: адреса домашней сети и самого телефона недоступны" }
+            val url = o["url"]?.toString() ?: throw IllegalArgumentException(tr("http: нужно url"))
+            require(url.startsWith("https://")) { tr("http: разрешены только https-адреса") }
+            require(!isPrivateHost(url)) { tr("http: адреса домашней сети и самого телефона недоступны") }
             val now = SystemClock.uptimeMillis()
             while (m.httpTimes.isNotEmpty() && now - m.httpTimes.first() > 60_000L) m.httpTimes.removeFirst()
-            require(m.httpTimes.size < 60) { "http: не больше 60 запросов в минуту" }
+            require(m.httpTimes.size < 60) { tr("http: не больше 60 запросов в минуту") }
             m.httpTimes.addLast(now)
             io.launch {
                 val r = runCatching { httpCall(url, o) }
@@ -1249,7 +1249,7 @@ object ScriptHost {
                                 if (!b64) runCatching { ScriptableObject.putProperty(jsRes, "json", parse.call(c, s, s, arrayOf(body))) }
                                 cb.call(c, s, s, arrayOf(null, jsRes))
                             },
-                            onFailure = { e -> cb.call(c, s, s, arrayOf(e.message ?: "ошибка сети", null)) }
+                            onFailure = { e -> cb.call(c, s, s, arrayOf(e.message ?: tr("ошибка сети"), null)) }
                         )
                     }
                 }
@@ -1282,9 +1282,9 @@ object ScriptHost {
 
         // --- таймеры
         fun timer(a: Array<Any?>, repeat: Boolean): Int {
-            val fn = a.getOrNull(0) as? JsFunction ?: throw IllegalArgumentException("нужна функция")
-            require(m.timers.size < MAX_TIMERS) { "слишком много таймеров" }
-            require(mods.values.sumOf { it.timers.size } < MAX_TIMERS * 2) { "слишком много таймеров у всех модов вместе" }
+            val fn = a.getOrNull(0) as? JsFunction ?: throw IllegalArgumentException(tr("нужна функция"))
+            require(m.timers.size < MAX_TIMERS) { tr("слишком много таймеров") }
+            require(mods.values.sumOf { it.timers.size } < MAX_TIMERS * 2) { tr("слишком много таймеров у всех модов вместе") }
             val delay = num(a, 1, 0.0).toLong().coerceIn(if (repeat) 50L else 0L, 24 * 3600_000L)
             val tid = m.nextTimer++
             val r = object : Runnable {
@@ -1337,10 +1337,10 @@ object ScriptHost {
         def(kb, "commitImage") { _, a ->
             val src = str(a, 0)
             val data = if (src.startsWith("data:")) src else m.plugin.files[src]?.let { "data:image/${src.substringAfterLast('.')};base64,$it" }
-                ?: throw IllegalArgumentException("commitImage: data:image/… или файл из архива мода")
+                ?: throw IllegalArgumentException(tr("commitImage: data:image/… или файл из архива мода"))
             val mime = data.substringAfter("data:").substringBefore(';').ifEmpty { "image/png" }
             val bytes = android.util.Base64.decode(data.substringAfter(','), android.util.Base64.DEFAULT)
-            require(bytes.size < 16 * 1024 * 1024) { "commitImage: картинка больше 16 МБ" }
+            require(bytes.size < 16 * 1024 * 1024) { tr("commitImage: картинка больше 16 МБ") }
             b()?.scriptCommitImage(bytes, if (mime == "image/jpg") "image/jpeg" else mime) ?: false
         }
         // подсказки со своим обработчиком: так моды делают свои способы ввода, меню и автодополнение
@@ -1391,13 +1391,13 @@ object ScriptHost {
         }
         def(kb, "setConfig") { _, a ->
             val key = str(a, 0)
-            require(m.plugin.config.any { it.id == key }) { "setConfig: нет настройки «$key» в блоке config" }
+            require(m.plugin.config.any { it.id == key }) { tr("setConfig: нет настройки «{0}» в блоке config", key) }
             ModConfig.set(ctx, m.plugin, key, fromJs(a.getOrNull(1)))
             Unit
         }
         // несколько настроек разом (свой пресет): карточка мода сразу покажет новые значения
         def(kb, "setConfigs") { _, a ->
-            val v = fromJs(a.getOrNull(0)) as? Map<*, *> ?: throw IllegalArgumentException("setConfigs: нужен объект")
+            val v = fromJs(a.getOrNull(0)) as? Map<*, *> ?: throw IllegalArgumentException(tr("setConfigs: нужен объект"))
             ModConfig.setAll(ctx, m.plugin, v.entries.associate { it.key.toString() to it.value })
         }
         def(kb, "mods") { _, _ -> mods.values.map { mapOf("id" to it.plugin.id, "name" to it.plugin.name, "version" to it.plugin.version) } }
@@ -1435,7 +1435,7 @@ object ScriptHost {
         def(kb, "haptic") { _, a ->
             val v = fromJs(a.getOrNull(0))
             val pattern = (v as? List<*>)?.mapNotNull { (it as? Double)?.toLong()?.coerceIn(0L, 2000L) }?.take(40)?.toLongArray()
-            if (pattern != null) require(pattern.sum() <= 6000L) { "haptic: узор не длиннее 6 секунд" }
+            if (pattern != null) require(pattern.sum() <= 6000L) { tr("haptic: узор не длиннее 6 секунд") }
             haptic(ctx, v?.toString() ?: "tick", pattern)
             Unit
         }
@@ -1455,7 +1455,7 @@ object ScriptHost {
             need(m, "launch")
             val url = str(a, 0)
             val scheme = url.substringBefore(':').lowercase()
-            require(scheme in setOf("https", "http", "mailto", "tel", "sms", "geo", "market", "tg", "whatsapp")) { "openUrl: такая ссылка не открывается" }
+            require(scheme in setOf("https", "http", "mailto", "tel", "sms", "geo", "market", "tg", "whatsapp")) { tr("openUrl: такая ссылка не открывается") }
             start(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)))
         }
         def(kb, "share") { _, a ->
@@ -1475,10 +1475,10 @@ object ScriptHost {
             need(m, "ai")
             val o = opts(a, 0)
             val cb = a.getOrNull(1) as? JsFunction
-            val promptText = o["prompt"]?.toString() ?: throw IllegalArgumentException("ai: нужно prompt")
+            val promptText = o["prompt"]?.toString() ?: throw IllegalArgumentException(tr("ai: нужно prompt"))
             val now = SystemClock.uptimeMillis()
             while (m.aiTimes.isNotEmpty() && now - m.aiTimes.first() > 60_000L) m.aiTimes.removeFirst()
-            require(m.aiTimes.size < 10) { "ai: не больше 10 запросов в минуту" }
+            require(m.aiTimes.size < 10) { tr("ai: не больше 10 запросов в минуту") }
             m.aiTimes.addLast(now)
             val st = KeyboardPrefs.current(ctx)
             val keys = AiKeys.of(st)
@@ -1573,7 +1573,7 @@ object ScriptHost {
         def(util, "transform") { _, a ->
             val o = opts(a, 2)
             val name = str(a, 0)
-            require(name in PluginParser.TRANSFORMS) { "transform: неизвестное преобразование «$name»" }
+            require(name in PluginParser.TRANSFORMS) { tr("transform: неизвестное преобразование «{0}»", name) }
             PluginTransforms.apply(
                 PluginAction("", "", PluginActionType.TRANSFORM, transform = name, prefix = o["prefix"]?.toString().orEmpty(),
                     suffix = o["suffix"]?.toString().orEmpty(), pattern = o["pattern"]?.toString().orEmpty(),

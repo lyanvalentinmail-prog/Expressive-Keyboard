@@ -569,7 +569,7 @@ internal fun StylePreview(settings: KeyboardSettings, spec: WavySpec) {
                 }
             }
             Row(Modifier.fillMaxWidth().height(keyH), horizontalArrangement = Arrangement.spacedBy(gap)) {
-                (if (I18n.isEnglish) listOf("h", "e", "l", "l", "o", "!") else listOf("п", "р", "и", "в", "е", "т")).forEachIndexed { i, ch ->
+                demoLetters().forEachIndexed { i, ch ->
                     val pressed = i == 2
                     Box(
                         Modifier.weight(1f).fillMaxHeight()
@@ -604,7 +604,7 @@ internal fun StylePreview(settings: KeyboardSettings, spec: WavySpec) {
                     }
                 }
                 Box(Modifier.weight(3f).fillMaxHeight().clip(CircleShape).background(palette.func), contentAlignment = Alignment.Center) {
-                    Text(if (I18n.isEnglish) "English" else "Русский", color = palette.onFunc.copy(alpha = 0.72f), fontFamily = font, fontWeight = weight, fontSize = 13.sp)
+                    Text(demoSpaceLabel(), color = palette.onFunc.copy(alpha = 0.72f), fontFamily = font, fontWeight = weight, fontSize = 13.sp)
                 }
                 Box(Modifier.weight(1.3f).fillMaxHeight().clip(CircleShape).background(palette.func), contentAlignment = Alignment.Center) {
                     GlyphIcon(Glyph.BACKSPACE, palette.onFunc, 20.dp)

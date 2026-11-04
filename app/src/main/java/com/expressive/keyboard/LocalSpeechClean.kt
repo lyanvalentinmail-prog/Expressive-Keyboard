@@ -10,10 +10,12 @@ object LocalSpeechClean {
         "э+м*", "э-э+", "м+м*", "а+м+", "х+м+", "ну+", "типа", "как бы", "это самое", "так сказать", "короче", "в общем-то", "собственно"
     )
     private val EN_FILLERS = listOf("u+m+", "u+h+m*", "e+r+m*", "a+h+", "h+m+", "you know", "i mean", "sort of", "kind of")
+    private val ES_FILLERS = listOf("e+h+", "e+m+", "m+m+", "a+h+", "o sea", "es decir", "pues")
 
     private fun fillersFor(lang: String): List<String> = when (lang) {
         "ru", "uk", "be" -> RU_FILLERS
         "en" -> EN_FILLERS
+        "es" -> ES_FILLERS
         else -> emptyList()
     }
 

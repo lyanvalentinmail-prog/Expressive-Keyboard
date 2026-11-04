@@ -6,31 +6,53 @@ import androidx.compose.runtime.setValue
 import java.util.Locale
 
 // ============================================================================
-// ЯЗЫК ИНТЕРФЕЙСА: русский или английский
-// Строки в коде пишутся по-русски; tr() возвращает английский перевод, если он выбран.
+// ЯЗЫК ИНТЕРФЕЙСА: русский, английский или испанский
+// Строки в коде пишутся по-русски; tr() возвращает перевод выбранного языка.
 // Общие компоненты настроек (разделы, переключатели, ползунки, выбор) переводят свои подписи сами.
 // ============================================================================
 
 object I18n {
+    /** Языки интерфейса: код и название на самом языке. */
+    val languages: List<Pair<String, String>> = listOf(
+        "ru" to "Русский",
+        "en" to "English",
+        "es" to "Español"
+    )
+
     var lang by mutableStateOf(systemLang())
         private set
 
-    private fun systemLang(): String =
-        if (Locale.getDefault().language in setOf("ru", "uk", "be", "kk", "ky", "tg", "tt", "ba", "uz")) "ru" else "en"
+    private fun systemLang(): String {
+        val code = Locale.getDefault().language
+        return when {
+            code in setOf("ru", "uk", "be", "kk", "ky", "tg", "tt", "ba", "uz") -> "ru"
+            code == "es" -> "es"
+            else -> "en"
+        }
+    }
 
-    /** setting: SYSTEM, ru или en. */
+    /** setting: SYSTEM, ru, en или es. */
     fun apply(setting: String) {
         val next = when (setting) {
-            "ru", "en" -> setting
+            "ru", "en", "es" -> setting
             else -> systemLang()
         }
         if (next != lang) lang = next
     }
 
     val isEnglish: Boolean get() = lang == "en"
+    val isRussian: Boolean get() = lang == "ru"
+    val isSpanish: Boolean get() = lang == "es"
+
+    /** Локаль интерфейса — для названий языков и системных подписей. */
+    val uiLocale: Locale get() = Locale.forLanguageTag(lang)
 }
 
-fun tr(ru: String): String = if (I18n.isEnglish) EN_STRINGS[ru] ?: ru else ru
+fun tr(ru: String): String = when (I18n.lang) {
+    "en" -> EN_STRINGS[ru] ?: ru
+    "es" -> ES_STRINGS[ru] ?: EN_STRINGS[ru] ?: ru
+    else -> ru
+}
 
 /** Подстановки {0}, {1}…: tr("Словарь «{0}»: {1} слов", name, n). */
 fun tr(ru: String, vararg args: Any?): String {
@@ -38,6 +60,23 @@ fun tr(ru: String, vararg args: Any?): String {
     args.forEachIndexed { i, a -> s = s.replace("{$i}", a.toString()) }
     return s
 }
+
+/** Буквы демонстрационного слова в предпросмотре клавиатуры (привет / hello / buenas). */
+fun demoLetters(): List<String> = when (I18n.lang) {
+    "en" -> listOf("h", "e", "l", "l", "o", "!")
+    "es" -> listOf("b", "u", "e", "n", "a", "s")
+    else -> listOf("п", "р", "и", "в", "е", "т")
+}
+
+/** Название языка на пробеле в предпросмотре. */
+fun demoSpaceLabel(): String = when (I18n.lang) {
+    "en" -> "English"
+    "es" -> "Español"
+    else -> "Русский"
+}
+
+/** Латинская раскладка в предпросмотре: английский и испанский. */
+val demoUsesLatin: Boolean get() = I18n.lang != "ru"
 
 internal val EN_STRINGS: Map<String, String> = hashMapOf(
     // разделы
@@ -1149,5 +1188,112 @@ internal val EN_STRINGS: Map<String, String> = hashMapOf(
     "Кнопка панели функций" to "Tools panel button",
     "Кнопка с сеткой слева от подсказок" to "The grid button left of the suggestions",
     "Скрыта: панель функций появляется, когда поле пустое" to "Hidden: the tools panel appears when the field is empty",
-    "Скрыта: подсказки выключены, поэтому панель функций видна всегда" to "Hidden: suggestions are off, so the tools panel is always shown"
+    "Скрыта: подсказки выключены, поэтому панель функций видна всегда" to "Hidden: suggestions are off, so the tools panel is always shown",
+    // диагностика плагинов, модов и идиом испанского
+    "Китайский традиционный (пиньинь)" to "Chinese Traditional (Pinyin)",
+    "Вьетнамский (Telex)" to "Vietnamese (Telex)",
+    "Очистить диктовку" to "Clean up dictation",
+    "Размер" to "Size",
+    "загрузка…" to "loading…",
+    "Плагин выключен" to "The plugin is off",
+    "Поле id: 2–64 символа из A-Z, a-z, 0-9, . _ -" to "id field: 2–64 characters from A-Z, a-z, 0-9, . _ -",
+    "Нужно поле name" to "The name field is required",
+    "Не больше 64 действий" to "No more than 64 actions",
+    "Действие #{0}: нужно поле title" to "Action #{0}: the title field is required",
+    "Действие «{0}»: type = insert | transform | key | http" to "Action “{0}”: type = insert | transform | key | http",
+    "«{0}»: неизвестное преобразование {1}" to "“{0}”: unknown transform {1}",
+    "«{0}»: неверное регулярное выражение" to "“{0}”: invalid regular expression",
+    "«{0}»: неизвестная клавиша {1}" to "“{0}”: unknown key {1}",
+    "«{0}»: для http нужно \"permissions\": [\"network\"]" to "“{0}”: http needs \"permissions\": [\"network\"]",
+    "«{0}»: url должен начинаться с https://" to "“{0}”: url must start with https://",
+    "settings: неизвестный ключ «{0}»" to "settings: unknown key “{0}”",
+    "layouts: «{0}» — код языка (ru, en, de…), symbols или symbols2" to "layouts: “{0}” — a language code (ru, en, de…), symbols or symbols2",
+    "layouts.{0}: от 1 до 8 рядов" to "layouts.{0}: 1 to 8 rows",
+    "script: больше 2 МБ" to "script: larger than 2 MB",
+    "Плагин пустой: нужны script, actions, shortcuts, symbols, theme, skin, settings, layouts, variants, icons, languages или dictionary" to "The plugin is empty: it needs script, actions, shortcuts, symbols, theme, skin, settings, layouts, variants, icons, languages or dictionary",
+    "В начале .js нужен комментарий /* @plugin { \"id\": …, \"name\": … } */" to "A .js file must start with the comment /* @plugin { \"id\": …, \"name\": … } */",
+    "Недопустимый путь в архиве: {0}" to "Invalid path in the archive: {0}",
+    "Архив больше 8 МБ после распаковки" to "The archive is larger than 8 MB unpacked",
+    "В архиве нет plugin.json" to "The archive has no plugin.json",
+    "В ответе нет «{0}»" to "The response has no “{0}”",
+    "Разрешены только https-запросы" to "Only https requests are allowed",
+    "Сервер ответил {0}" to "The server replied {0}",
+    "Файл больше 8 МБ" to "The file is larger than 8 MB",
+    "Не удалось открыть файл" to "Couldn't open the file",
+    "id «{0}» занят встроенным плагином" to "the id “{0}” is taken by a built-in plugin",
+    "playAudio: не больше 8 звуков сразу" to "playAudio: no more than 8 sounds at once",
+    "playAudio: нет файла «{0}»" to "playAudio: no file “{0}”",
+    "playAudio: файл больше 8 МБ" to "playAudio: the file is larger than 8 MB",
+    "files: имя файла — латиница, цифры, . _ - (до 100 символов)" to "files: the file name must be latin letters, digits, . _ - (up to 100 characters)",
+    "files: у мода не больше 32 МБ файлов" to "files: a mod can hold at most 32 MB of files",
+    "sendKey: неизвестная клавиша «{0}»" to "sendKey: unknown key “{0}”",
+    "kb.on(событие, функция)" to "kb.on(event, function)",
+    "addButton: нужно title" to "addButton: title is required",
+    "addPanel: нужно title" to "addPanel: title is required",
+    "kb.addCommand(имя, функция)" to "kb.addCommand(name, function)",
+    "particles: не больше 8 систем у мода" to "particles: at most 8 systems per mod",
+    "particles.emit: сначала particles.set" to "particles.emit: call particles.set first",
+    "setLayout: код языка, symbols или symbols2" to "setLayout: a language code, symbols or symbols2",
+    "storage: значение больше 256 КБ" to "storage: the value is larger than 256 KB",
+    "http: нужно url" to "http: url is required",
+    "http: разрешены только https-адреса" to "http: only https addresses are allowed",
+    "http: адреса домашней сети и самого телефона недоступны" to "http: home network and local phone addresses are not available",
+    "http: не больше 60 запросов в минуту" to "http: no more than 60 requests per minute",
+    "нужна функция" to "a function is required",
+    "слишком много таймеров" to "too many timers",
+    "слишком много таймеров у всех модов вместе" to "too many timers across all mods",
+    "commitImage: data:image/… или файл из архива мода" to "commitImage: data:image/… or a file from the mod archive",
+    "commitImage: картинка больше 16 МБ" to "commitImage: the image is larger than 16 MB",
+    "setConfig: нет настройки «{0}» в блоке config" to "setConfig: no “{0}” setting in the config block",
+    "setConfigs: нужен объект" to "setConfigs: an object is required",
+    "haptic: узор не длиннее 6 секунд" to "haptic: the pattern can be at most 6 seconds",
+    "openUrl: такая ссылка не открывается" to "openUrl: this link can't be opened",
+    "ai: нужно prompt" to "ai: prompt is required",
+    "ai: не больше 10 запросов в минуту" to "ai: no more than 10 requests per minute",
+    "transform: неизвестное преобразование «{0}»" to "transform: unknown transform “{0}”",
+    "скрипт работает слишком долго и остановлен" to "the script ran too long and was stopped",
+    "ошибка сети" to "network error",
+    "{0}: неверный цвет «{1}»" to "{0}: invalid color “{1}”",
+    "{0}: пустой градиент" to "{0}: empty gradient",
+    "{0}.pattern: pixels, dots или planks" to "{0}.pattern: pixels, dots or planks",
+    "{0}: ожидается цвет или градиент" to "{0}: a color or gradient is expected",
+    "{0}: «{1}» — допустимо {2}" to "{0}: “{1}” — allowed values: {2}",
+    "keys: неизвестный селектор «{0}»" to "keys: unknown selector “{0}”",
+    "languages: id вида «xx» или «xx-yy»" to "languages: the id looks like “xx” or “xx-yy”",
+    "languages.{0}: нужны rows" to "languages.{0}: rows are required",
+    "languages.{0}: от 1 до 5 рядов" to "languages.{0}: 1 to 5 rows",
+    "Нет текста для «{0}»" to "No text for “{0}”",
+    "Это не файл настроек клавиатуры" to "This isn't a keyboard settings file",
+    "ошибка" to "error",
+    "Как установить: нажмите «Импорт из файла» и выберите плагин (.json, .js или .zip) или скопируйте его текст и нажмите «Импорт из буфера обмена». Плагин появится в списке ниже — его можно включить, выключить или удалить.\n\nКак пользоваться: на клавиатуре нажмите кнопку с сеткой слева вверху, затем кнопку «Плагины» — откроются вкладки плагинов с их кнопками и панелями. Кнопки, отмеченные плагином, появляются прямо на панели инструментов.\n\nКак сделать свой: сохраните пример кнопкой ниже, отредактируйте и импортируйте. Описание формата — в файле PLUGINS.md." to "How to install: tap «Import from file» and pick a plugin (.json, .js or .zip), or copy its text and tap «Import from clipboard». The plugin appears in the list below — you can turn it on, off or delete it.\n\nHow to use: on the keyboard tap the grid button at the top left, then the «Plugins» button — the plugin tabs open with their buttons and panels. Buttons added by a plugin appear right on the toolbar.\n\nHow to make your own: save the example with the button below, edit it and import it. The format is described in PLUGINS.md.",
+    "Язык меняется кнопкой смены языка (удержание — список языков) или свайпом по пробелу. Всего языков: {0}. Подсказки работают по частотному словарю: русский, английский и китайский встроены, остальные скачиваются (~0,3–0,8 МБ). Китайский набирается пиньинем (nihao → 你好), японский — ромадзи (konnichiha → こんにちは), корейский собирает слоги сам, вьетнамский — по Telex." to "Change the language with the language key (hold it for the list) or by swiping over the space bar. Languages in total: {0}. Suggestions use a frequency dictionary: Russian, English and Chinese are built in, the rest are downloaded (~0.3–0.8 MB). Chinese is typed with Pinyin (nihao → 你好), Japanese with Romaji (konnichiha → こんにちは), Korean builds syllables by itself, Vietnamese uses Telex.",
+    "Порядок кнопок на панели инструментов (кнопка с сеткой слева вверху). На самой клавиатуре порядок тоже меняется: удерживайте кнопку и перетащите её влево или вправо." to "Order of the buttons on the toolbar (the grid button at the top left). On the keyboard itself the order also changes: hold a button and drag it left or right.",
+    "{0} (строка {1})" to "{0} (line {1})",
+    "нужно разрешение \"{0}\" в поле permissions" to "the permission \"{0}\" is needed in the permissions field",
+    // плагины и моды, встроенные в приложение
+    "Дата и время" to "Date & time",
+    "Правка" to "Editing",
+    "Текст" to "Text",
+    "Калькулятор" to "Calculator",
+    "Эффекты" to "Effects",
+    "Заметки" to "Notes",
+    "Студия" to "Studio",
+    "Ёлочки «»" to "Smart quotes «»",
+    "Привычная нейтральная клавиатура: белые клавиши на сером фоне, синий Enter, лёгкая тень. Без цветов Material You, в светлой и тёмной теме." to "A familiar, neutral keyboard: white keys on gray, a blue Enter, a soft shadow. No Material You colors, in light and dark themes.",
+    "Вставка даты и времени, сокращения :date, :time, :now" to "Insert the date and time, with the shortcuts :date, :time, :now",
+    "Клавиатура из жидкого стекла: на Android 12+ размывает приложение под собой, клавиши — матовое стекло с зерном, бликом и ободком; блик перетекает под палец, нажатие пружинит как желе, а подсказка вытекает из клавиши каплей. В настройках темы — размытие клавиш, зерно, преломление, блик." to "A liquid glass keyboard: on Android 12+ it blurs the app behind it; keys are frosted glass with grain, gloss and a rim; the gloss flows under your finger, presses spring like jelly and the hint drips out of the key. Theme settings: key blur, grain, refraction, gloss.",
+    "Клавиатура по гайдлайнам Material 3 от Google, как в Gboard: цвета Material You, клавиши-прямоугольники со скруглением, тональные служебные клавиши, подсказки текстом." to "A keyboard that follows Google's Material 3 guidelines, like Gboard: Material You colors, rounded rectangular keys, tonal function keys, text suggestions.",
+    "Каменные кнопки из пикселей с объёмной кромкой на фоне из земли, пиксельный шрифт с тенью, зелёный Enter. В настройках темы — доски, глубинный сланец и незер." to "Stone pixel buttons with a raised rim on a dirt background, a pixel font with a shadow, a green Enter. Theme settings: planks, deepslate and nether.",
+    "Выделение, копирование, вставка, отмена и перемещение курсора" to "Select, copy, paste, undo and move the cursor",
+    "Глубокий тёмно-фиолетовый фон, тонкие бирюзовые контуры и чёткие буквы. Клавиша загорается только под пальцем, Enter — переливается бирюзовым в сиреневый." to "A deep dark-purple background, thin turquoise outlines and crisp letters. A key lights up only under your finger; Enter shimmers from turquoise to lilac.",
+    "Мягкие выпуклые клавиши из того же материала, что и фон: свет сверху слева, тень снизу справа, при нажатии клавиша вдавливается. Светлый и тёмный вариант." to "Soft raised keys made of the same material as the background: light from the top left, shadow at the bottom right, the key sinks in when pressed. Light and dark versions.",
+    "В стиле Nothing Phone: монохром, буквы из точек как на точечной матрице, контуры из точек, точечная сетка на фоне и красный Enter. Тёмная и светлая версия." to "In the style of Nothing Phone: monochrome, letters made of dots like a dot-matrix display, dotted outlines, a dot grid in the background and a red Enter. Dark and light versions.",
+    "Как клавиатура Samsung: светлые плоские клавиши со скруглением, серые служебные, синий акцент One UI. Светлый и тёмный вариант, в настройках — синий Enter и контуры." to "Like the Samsung keyboard: light flat keys with rounded corners, gray function keys, the blue One UI accent. Light and dark versions; settings include a blue Enter and outlines.",
+    "Каомодзи, стрелки, математика и типографика" to "Kaomoji, arrows, math and typography",
+    "Преобразования выделенного текста или последнего слова: регистр, раскладка, транслит, кавычки" to "Transforms the selected text or the last word: case, keyboard layout, transliteration, quotes",
+    "Мод: калькулятор прямо в клавиатуре. Результат вставляется в поле одной кнопкой." to "Mod: a calculator right in the keyboard. One button inserts the result into the field.",
+    "Пример мода на API 4: искры и жидкость отскакивают от клавиш и реагируют на палец, шейдер, наклон клавиатуры. Настройки разбиты на вкладки, есть пресеты." to "Sample mod for API 4: sparks and liquid bounce off the keys and react to your finger, a shader, keyboard tilt. Settings are split into tabs, with presets.",
+    "Мод: сохраняйте выделенный или скопированный текст и вставляйте его одним касанием. Заметки хранятся только на телефоне." to "Mod: save selected or copied text and paste it with one tap. Notes are kept only on your phone.",
+    "Мод: кавычка \" сама становится « или » — в зависимости от того, открываете вы цитату или закрываете. Пример события key." to "Mod: the \" key turns into « or » by itself, depending on whether you open or close a quote. Sample of the key event.",
+    "Пример мода на API 3: пианино из синтезатора, рисование пальцем по клавиатуре, быстрые фразы с вводом прямо в моде, озвучка текста и свои настройки. Откройте его код, чтобы сделать свой мод." to "Sample mod for API 3: a synth piano, finger drawing over the keyboard, quick phrases typed right in the mod, text-to-speech and custom settings. Open its code to build your own mod."
 )

@@ -142,18 +142,18 @@ import kotlinx.coroutines.CoroutineStart
 
 private data class MiniKey(val label: String, val type: KeyType, val w: Float)
 
-private fun miniRows(english: Boolean): List<List<MiniKey>> {
+private fun miniRows(latin: Boolean): List<List<MiniKey>> {
     fun letters(s: String) = s.map { MiniKey(it.toString(), KeyType.CHARACTER, 1f) }
-    val r1 = if (english) "qwertyuiop" else "йцукенгшщз"
-    val r2 = if (english) "asdfghjkl" else "фывапролд"
-    val r3 = if (english) "zxcvbnm" else "ячсмитьб"
+    val r1 = if (latin) "qwertyuiop" else "йцукенгшщз"
+    val r2 = if (latin) "asdfghjkl" else "фывапролд"
+    val r3 = if (latin) "zxcvbnm" else "ячсмитьб"
     return listOf(
         letters(r1),
         listOf(MiniKey("", KeyType.SPACER, 0.5f)) + letters(r2) + MiniKey("", KeyType.SPACER, 0.5f),
-        listOf(MiniKey("⇧", KeyType.SHIFT, 1.4f)) + letters(r3).take(if (english) 7 else 7) + MiniKey("⌫", KeyType.BACKSPACE, 1.6f),
+        listOf(MiniKey("⇧", KeyType.SHIFT, 1.4f)) + letters(r3).take(7) + MiniKey("⌫", KeyType.BACKSPACE, 1.6f),
         listOf(
             MiniKey("?123", KeyType.MODE_SYMBOLS, 1.5f), MiniKey("☺", KeyType.STICKERS, 1.1f),
-            MiniKey(if (english) "English" else "Русский", KeyType.SPACE, 4.6f), MiniKey(".", KeyType.CHARACTER, 1f),
+            MiniKey(demoSpaceLabel(), KeyType.SPACE, 4.6f), MiniKey(".", KeyType.CHARACTER, 1f),
             MiniKey("↵", KeyType.ENTER, 1.6f)
         )
     )
@@ -180,7 +180,7 @@ internal fun SkinMiniPreview(skin: KeyboardSkin?, settings: KeyboardSettings, mo
     val measurer = rememberTextMeasurer(cacheSize = 64)
     val density = LocalDensity.current
     SideEffect { PatternTiles.density = density.density }
-    val rows = remember(I18n.isEnglish) { miniRows(I18n.isEnglish) }
+    val rows = remember(I18n.lang) { miniRows(demoUsesLatin) }
     val caches = remember(skin) { HashMap<Int, SkinKeyCache>() }
     val rects = remember { ArrayList<Pair<Int, Rect>>() }
     var pressedIdx by remember { mutableIntStateOf(-1) }
@@ -326,7 +326,7 @@ internal fun ThemesPage(settings: KeyboardSettings, onNavigate: (SettingsPage) -
             val r = withContext(Dispatchers.IO) { PluginRepository.importFrom(context, uri) }
             r.onSuccess { p ->
                 if (p.skin != null) ThemeEditor.apply(context, p.id)
-                Toast.makeText(context, tr("Тема «{0}» установлена", p.name), Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, tr("Тема «{0}» установлена", tr(p.name)), Toast.LENGTH_SHORT).show()
             }.onFailure { Toast.makeText(context, tr("Ошибка: {0}", it.message), Toast.LENGTH_LONG).show() }
         }
     }
@@ -391,7 +391,7 @@ internal fun ThemesPage(settings: KeyboardSettings, onNavigate: (SettingsPage) -
             importLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream", "*/*"))
         })
         plugins.filter { it.skin != null && !it.builtIn }.forEach { p ->
-            ActionItem(Icons.Rounded.Palette, p.name, if (settings.skinPlugin == p.id) tr("Применена") else tr("Нажмите, чтобы применить"), onClick = {
+            ActionItem(Icons.Rounded.Palette, tr(p.name), if (settings.skinPlugin == p.id) tr("Применена") else tr("Нажмите, чтобы применить"), onClick = {
                 ThemeEditor.apply(context, p.id)
             }, trailing = {
                 Row {
@@ -410,7 +410,7 @@ internal fun ThemesPage(settings: KeyboardSettings, onNavigate: (SettingsPage) -
         AlertDialog(
             onDismissRequest = { confirmDelete = null },
             icon = { Icon(Icons.Rounded.DeleteOutline, null) },
-            title = { Text(tr("Удалить «{0}»?", p.name)) },
+            title = { Text(tr("Удалить «{0}»?", tr(p.name))) },
             confirmButton = {
                 Button(onClick = {
                     if (settings.skinPlugin == p.id) PluginRepository.removeSkin(context)
@@ -523,7 +523,7 @@ object ThemeEditor {
     }
 
     fun skin(): KeyboardSkin? = runCatching { SkinParser.parse(root().getJSONObject("skin")) }.getOrNull()
-    fun error(): String? = runCatching { SkinParser.parse(root().getJSONObject("skin")); null }.getOrElse { it.message ?: "ошибка" }
+    fun error(): String? = runCatching { SkinParser.parse(root().getJSONObject("skin")); null }.getOrElse { it.message ?: tr("ошибка") }
 
     fun blank(): JSONObject = JSONObject(
         """{"id":"user.theme.${System.currentTimeMillis()}","name":"${tr("Моя тема")}","version":"1.0","author":"","description":"","icon":"🎨",

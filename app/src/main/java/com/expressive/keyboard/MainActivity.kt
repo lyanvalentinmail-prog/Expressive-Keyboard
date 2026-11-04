@@ -441,7 +441,7 @@ internal fun HomePage(settings: KeyboardSettings, onNavigate: (SettingsPage) -> 
             }
             if (SettingsPage.BACKUP in pages) ChoiceItem(
                 Icons.Rounded.Translate, "Язык приложения", null,
-                listOf("SYSTEM" to "Как в системе", "ru" to "Русский", "en" to "English"), settings.appLanguage
+                listOf("SYSTEM" to "Как в системе") + I18n.languages, settings.appLanguage
             ) { v -> KeyboardPrefs.edit(context) { putString("app_language", v) } }
         }
     }
@@ -1347,7 +1347,7 @@ internal fun PluginsPage() {
 
     fun onImported(r: Result<KeyboardPlugin>) {
         r.onSuccess { p ->
-            Toast.makeText(context, tr("Плагин «{0}» установлен", p.name), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, tr("Плагин «{0}» установлен", tr(p.name)), Toast.LENGTH_SHORT).show()
             expanded = p.id
             if (p.usesNetwork || p.permissions.any { it in setOf("read_text", "clipboard", "launch", "ai", "sensors", "microphone", "app_info") }) pendingNetwork = p
         }.onFailure { Toast.makeText(context, tr("Ошибка: {0}", it.message), Toast.LENGTH_LONG).show() }
@@ -1431,7 +1431,7 @@ internal fun PluginsPage() {
         AlertDialog(
             onDismissRequest = { confirmDelete = null },
             icon = { Icon(Icons.Rounded.DeleteOutline, null) },
-            title = { Text(tr("Удалить «{0}»?", p.name)) },
+            title = { Text(tr("Удалить «{0}»?", tr(p.name))) },
             text = { Text(tr("Файл плагина будет удалён. Его можно импортировать заново.")) },
             confirmButton = {
                 Button(onClick = {
@@ -1449,7 +1449,7 @@ internal fun PluginsPage() {
             title = { Text(tr("Разрешения плагина")) },
             text = {
                 Text(
-                    tr("«{0}» просит:", p.name) + "\n\n" + buildList {
+                    tr("«{0}» просит:", tr(p.name)) + "\n\n" + buildList {
                         if ("read_text" in p.permissions) add("• " + tr("читать набираемый текст и текст в поле"))
                         if ("clipboard" in p.permissions) add("• " + tr("читать историю буфера обмена"))
                         if ("launch" in p.permissions) add("• " + tr("открывать ссылки, приложения и окно «Поделиться»"))
@@ -1496,7 +1496,7 @@ internal fun PluginCard(p: KeyboardPlugin, expanded: Boolean, onExpand: () -> Un
                 ) { SpecIcon(p.icon, if (enabled) cs.onPrimaryContainer else cs.onSurfaceVariant, 24.dp) }
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(p.name, style = MaterialTheme.typography.titleMedium, color = cs.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(tr(p.name), style = MaterialTheme.typography.titleMedium, color = cs.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         if (p.usesNetwork) Icon(Icons.Rounded.Public, "Использует сеть", tint = cs.tertiary, modifier = Modifier.size(16.dp))
                     }
                     Text(
@@ -1518,7 +1518,7 @@ internal fun PluginCard(p: KeyboardPlugin, expanded: Boolean, onExpand: () -> Un
                 exit = shrinkVertically() + fadeOut()
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (p.description.isNotBlank()) Text(p.description, style = MaterialTheme.typography.bodyMedium, color = cs.onSurface)
+                    if (p.description.isNotBlank()) Text(tr(p.description), style = MaterialTheme.typography.bodyMedium, color = cs.onSurface)
                     val perms = p.permissions.filter { it in PluginParser.PERMISSIONS }
                     if (perms.isNotEmpty()) {
                         Text(tr("Разрешения"), style = MaterialTheme.typography.labelLarge, color = cs.primary)
@@ -1584,7 +1584,7 @@ internal fun PluginCard(p: KeyboardPlugin, expanded: Boolean, onExpand: () -> Un
                             FilledTonalButton(onClick = {
                                 if (!enabled) PluginRepository.setEnabled(context, p.id, true)
                                 PluginRepository.applyLook(context, p)
-                                Toast.makeText(context, tr("Оформление «{0}» применено", p.name), Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, tr("Оформление «{0}» применено", tr(p.name)), Toast.LENGTH_SHORT).show()
                             }) {
                                 Icon(Icons.Rounded.FormatPaint, null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(6.dp))
